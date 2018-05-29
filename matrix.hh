@@ -25,7 +25,7 @@ public:
 
     using ConstIterator = IteratorTemplate<true>;
     using Iterator = IteratorTemplate<false>;
-
+    Matrix() = default;
     Matrix(size_t rows, size_t cols, const T &initVal = T()) : data_(rows * cols, initVal), rows_(rows), cols_(cols) {}
     Matrix(const std::initializer_list<std::initializer_list<T>> &initList);
     Matrix(const Matrix &other) : data_(other.data_), rows_(other.rows_), cols_(other.cols_) {}
@@ -69,7 +69,6 @@ private:
     size_t rows_{};
     size_t cols_{};
     Matrix(size_t rows, size_t cols, std::vector<T> data) : data_(std::move(data)), rows_(rows), cols_(cols) {};
-    Matrix() = default;
 };
 
 
@@ -196,8 +195,7 @@ auto Matrix<T>::operator-(const Matrix &other) const {
 
 template<typename T>
 auto Matrix<T>::operator*(const Matrix &other) const {
-    if (cols_ != other.rows_)
-        throw MatrixSizeMismatchException();
+    if (cols_ != other.rows_) { throw MatrixSizeMismatchException(); }
     auto result = Matrix<T>(rows_, cols_, std::vector<T>(data_.size()));
     for (int row = 0; row < rows_; ++row) {
         for (int col = 0; col < cols_; ++col) {
@@ -211,8 +209,7 @@ auto Matrix<T>::operator*(const Matrix &other) const {
 
 template<typename T>
 auto Matrix<T>::operator*(const std::vector<T> &vec) const {
-    if (rows_ != vec.size())
-        throw MatrixSizeMismatchException();
+    if (rows_ != vec.size()) { throw MatrixSizeMismatchException(); }
     auto result = std::vector<T>(cols_, 0);
     for (int row = 0; row < rows_; ++row) {
         for (int col = 0; col < cols_; ++col) {

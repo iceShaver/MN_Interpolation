@@ -1,6 +1,5 @@
 #include <iostream>
 #include <vector>
-#include <map>
 #include <fstream>
 #include <algorithm>
 #include <iterator>
@@ -16,10 +15,10 @@ using Point = std::pair<double, double>;
 
 auto make_lagrange(double const X, std::vector<Point> const &points) {
     auto result = 0.0;
-    for (int i = 0; i < points.size(); ++i) {
+    for (auto i = 0u; i < points.size(); ++i) {
         auto[xi, yi] = points[i];
         auto mul = 1.0;
-        for (int j = 0; j < points.size(); ++j) {
+        for (auto j = 0u; j < points.size(); ++j) {
             if (j == i) { continue; }
             auto xj = points[j].first;
             mul *= ((X - xj) / (xi - xj));

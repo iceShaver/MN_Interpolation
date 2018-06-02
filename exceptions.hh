@@ -11,4 +11,5 @@ class Exception : std::exception {};
 class MatrixSizeMismatchException : Exception{};
 class NotASquareMatrixException : Exception{};
 class OutOfMatrixException : Exception{};
+class InvalidRangeException : Exception{};
 #endif //EXCEPTIONS_HH

@@ -13,10 +13,9 @@
 template<typename T>
 std::ostream &operator<<(std::ostream &o, const std::vector<T> &v) {
     o << "vector<" << typeid(T).name() << ">[" << v.size() << "]\n";
-    for (auto &val : v) o << val << '\n';
-    return o << "\n";
+    for (auto &val : v) { o << val << '\n'; }
+    return o << '\n';
 }
-
 
 
 #endif //IOSTREAM_TOOLS_H

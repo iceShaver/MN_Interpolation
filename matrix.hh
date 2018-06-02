@@ -18,7 +18,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-class Matrix {
+class Matrix final {
 public:
     template<bool isConstIterator = false>
     class IteratorTemplate;
@@ -181,7 +181,7 @@ auto Matrix<T>::operator+(const Matrix &other) const {
     if (data_.size() != other.data_.size())
         throw MatrixSizeMismatchException();
     auto result = Matrix<T>(rows_, cols_);
-    std::transform(this->begin(), this->end(), other.begin(), result.begin(), std::plus<>());
+    std::transform(this->data_.begin(), this->data_.end(), other.data_.begin(), result.data_.begin(), std::plus<>());
     return result;
 }
 
@@ -189,7 +189,7 @@ template<typename T>
 auto Matrix<T>::operator-(const Matrix &other) const {
     if (data_.size() != other.data_.size()) { throw MatrixSizeMismatchException(); }
     auto result = Matrix<T>(rows_, cols_);
-    std::transform(this->begin(), this->end(), other.begin(), result.begin(), std::minus<>());
+    std::transform(this->data_.begin(), this->data_.end(), other.data_.begin(), result.data_.begin(), std::minus<>());
     return result;
 }
 

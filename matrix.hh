@@ -32,8 +32,8 @@ public:
     Matrix(Matrix &&other) noexcept : data_(std::move(other.data_)), rows_(other.rows_), cols_(other.cols_) {}
     virtual ~Matrix() = default;
 
-    auto getRow(size_t row) const;
-    auto getCol(size_t col) const;
+    auto getRow(size_t row) const; // TODO: return vector<std::ref> for non const version
+    auto getCol(size_t col) const; // TODO: return vector<std::ref> for non const version
     void swapRows(size_t row1, size_t row2);
     void swapCols(size_t col1, size_t col2);
     auto rows() const noexcept { return rows_; }
@@ -46,6 +46,7 @@ public:
     auto operator-(const Matrix &other) const;
     auto operator*(const Matrix &other) const;
     auto operator*(const std::vector<T> &vec) const;
+
     auto begin() { return Iterator(data_.begin()); }
     auto end() { return Iterator(data_.end()); }
     auto begin() const { return ConstIterator(data_.cbegin()); }

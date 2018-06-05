@@ -12,4 +12,5 @@ class MatrixSizeMismatchException : Exception{};
 class NotASquareMatrixException : Exception{};
 class OutOfMatrixException : Exception{};
 class InvalidRangeException : Exception{};
+class InvalidArgumentException : Exception{};
 #endif //EXCEPTIONS_HH

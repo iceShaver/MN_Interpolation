@@ -25,11 +25,11 @@ namespace linear_system {
         if (!A.isSquare()) { throw NotASquareMatrixException(); }
         auto L = Matrix<T>{A.rows(), A.cols()};
         auto U = A;
-        for (int i = 0; i < A.rows(); ++i) {
+        for (auto i = 0u; i < A.rows(); ++i) {
             L(i, i) = 1;
-            for (int j = i + 1; j < A.rows(); ++j) {
+            for (auto j = i + 1; j < A.rows(); ++j) {
                 L(j, i) = U(j, i) / U(i, i);
-                for (int k = i; k < A.rows(); ++k) {
+                for (auto k = i; k < A.rows(); ++k) {
                     U(j, k) = U(j, k) - L(j, i) * U(i, k);
                 }
             }
@@ -44,9 +44,9 @@ namespace linear_system {
         auto n = L.cols();
         auto y = std::vector<T>(n);
         y[0] = b[0];
-        for (auto i = 1; i < n; ++i) {
+        for (auto i = 1u; i < n; ++i) {
             auto sum = 0.0;
-            for (auto j = 0; j < i; ++j)
+            for (auto j = 0u; j < i; ++j)
                 sum += L(i, j) * y[j];
             y[i] = 1 / L(i, i) * (b[i] - sum);
         }

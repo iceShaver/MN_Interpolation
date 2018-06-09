@@ -29,17 +29,17 @@ auto interpolation::lagrange_x(double x, std::vector<point> const &points) {
 
 
 void
-interpolation::lagrange(std::vector<point> const &points, std::string const &outputFileName, double interpolationStep) {
+interpolation::lagrange(std::vector<point> const &points, std::string const &output_filename, double interpolationStep) {
     if (interpolationStep <= 0) { throw std::runtime_error("interpolation step is negative"); }
     auto futures = std::vector<std::future<point>>();
     futures.reserve(static_cast<unsigned long long>(points.back().first + 1.0));
     for (auto x = points[0].first; x < points.back().first; x += interpolationStep) {
         futures.push_back(std::async(std::launch::async, lagrange_x, x, points));
     }
-    auto interpolatedOutFile = std::ofstream(outputFileName);
+    auto lagrange_out_file = std::ofstream(output_filename);
     for (auto &future : futures) {
         auto[x, y] = future.get();
-        interpolatedOutFile << x << ',' << y << '\n';
+        lagrange_out_file << x << ',' << y << '\n';
     }
 }
 
@@ -91,9 +91,9 @@ auto interpolation::build_equations_matrices(const std::vector<point> &points) {
 
 
 void
-interpolation::cubic_spline(std::vector<point> const &points, std::string const &outputFileName,
-                            double interpolationStep) {
-    if (interpolationStep <= 0) { throw std::runtime_error("interpolation step is negative"); }
+interpolation::cubic_spline(std::vector<point> const &points, std::string const &output_filename,
+                            double interpolation_step) {
+    if (interpolation_step <= 0) { throw std::runtime_error("interpolation step is negative"); }
 
     // compute coefficients
     auto coefficients = std::vector<std::tuple<double, double, double, double>>();
@@ -109,7 +109,7 @@ interpolation::cubic_spline(std::vector<point> const &points, std::string const 
         }
     }
 
-    // function which returns interpolated y value in x point
+    // lambda which returns interpolated y value in x point
     auto f = [&](auto const x) {
         auto predicate = [&x](auto const elem) { return elem.first >= x; };
         auto index = std::max((int) (std::find_if(points.begin(), points.end(), predicate) - points.begin() - 1), 0);
@@ -120,9 +120,8 @@ interpolation::cubic_spline(std::vector<point> const &points, std::string const 
     };
 
     // compute and save results
-    auto inter_out = std::ofstream(outputFileName);
-    for (auto x = points.front().first; x <= points.back().first; x += interpolationStep) {
+    auto inter_out = std::ofstream(output_filename);
+    for (auto x = points.front().first; x <= points.back().first; x += interpolation_step) {
         inter_out << x << ',' << f(x) << '\n' << std::flush;
     }
 }
-

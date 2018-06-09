@@ -29,7 +29,8 @@ auto interpolation::lagrange_x(double x, std::vector<point> const &points) {
 
 
 void
-interpolation::lagrange(std::vector<point> const &points, std::string const &output_filename, double interpolationStep) {
+interpolation::lagrange(std::vector<point> const &points, std::string const &output_filename,
+                        double interpolationStep) {
     if (interpolationStep <= 0) { throw std::runtime_error("interpolation step is negative"); }
     auto futures = std::vector<std::future<point>>();
     futures.reserve(static_cast<unsigned long long>(points.back().first + 1.0));
@@ -111,8 +112,9 @@ interpolation::cubic_spline(std::vector<point> const &points, std::string const 
 
     // lambda which returns interpolated y value in x point
     auto f = [&](auto const x) {
-        auto predicate = [&x](auto const elem) { return elem.first >= x; };
-        auto index = std::max(static_cast<int> (std::find_if(points.begin(), points.end(), predicate) - points.begin() - 1), 0);
+        auto predicate = [&x](auto const &elem) { return elem.first >= x; };
+        auto index = std::max(
+                static_cast<int> (std::find_if(points.begin(), points.end(), predicate) - points.begin() - 1), 0);
         auto x0 = points[index].first;
         auto[a, b, c, d] = coefficients[index];
         auto result = a + b * (x - x0) + c * std::pow(x - x0, 2) + d * std::pow(x - x0, 3);

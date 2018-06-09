@@ -2,7 +2,6 @@
 // Created by kamil on 05.06.18.
 //
 #include "interpolation.hh"
-#include <future>
 #include <fstream>
 #include <iterator>
 #include <tuple>

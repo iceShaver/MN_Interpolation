@@ -14,7 +14,7 @@ auto load_data(std::string const &fileName, unsigned long step) {
     auto file = std::ifstream(fileName);
     std::for_each(std::istream_iterator<std::string>(file),
                   std::istream_iterator<std::string>(),
-                  [step, i = 0, &data](auto const &line) mutable -> void {
+                  [step, i = 0, &data](auto const &line) mutable {
                       if (!(i++ % step)) {
                           auto const slices = ::split(line, ',');
                           data.emplace_back(std::stod(slices[0]), std::stod(slices[1]));

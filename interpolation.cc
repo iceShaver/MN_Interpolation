@@ -9,7 +9,6 @@
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/vector.hpp>
 #include <boost/numeric/ublas/lu.hpp>
-#include "string_tools.hh"
 
 
 auto interpolation::lagrange_x(double x, std::vector<point> const &points) {
@@ -24,38 +23,26 @@ auto interpolation::lagrange_x(double x, std::vector<point> const &points) {
         }
         result += mul;
     }
-    return point(x, result);
+    return result;
 }
 
 
-void
-interpolation::lagrange(std::vector<point> const &points, std::string const &output_filename,
-                        double interpolation_step) {
-    if (interpolation_step <= 0) { throw std::runtime_error("interpolation step is negative"); }
-    auto futures = std::vector<std::future<point>>();
-    futures.reserve(static_cast<unsigned long long>(points.back().first / interpolation_step + 1.0));
-    for (auto x = points[0].first; x < points.back().first; x += interpolation_step) {
-        futures.push_back(std::async(std::launch::async, lagrange_x, x, points));
-    }
+void interpolation::lagrange(std::vector<point> const &points,
+                             std::string const &output_filename,
+                             unsigned interpolation_step) {
     auto lagrange_out_file = std::ofstream(output_filename);
-    for (auto &future : futures) {
-        auto[x, y] = future.get();
-        lagrange_out_file << x << ',' << y << '\n';
+    for (auto x = 0u; x < (unsigned) points.back().first; x += interpolation_step) {
+        lagrange_out_file << x << ',' << lagrange_x(x, points) << '\n';
     }
 }
 
 
 auto interpolation::build_equations_matrices(const std::vector<point> &points) {
-    // matrix size
-    auto N = 1u + 1u              // edge conditionals
-             + points.size() - 2  // inner points first derivative continuity
-             + points.size() - 2  // inner points second derivative continuity
-             + points.size() - 1  // f(x0) = y0
-             + points.size() - 1; // f(x1) = y1s
+    auto const N = 4 * (points.size() - 1);
     auto A = boost::numeric::ublas::matrix<double>(N, N, 0);
     auto B = boost::numeric::ublas::vector<double>(N, 0);
 
-    for (auto i = 0u; i < points.size() - 1; i++) {
+    for (auto i = 0u;; i++) {
         auto[x0, y0] = points[i];
         auto[x1, y1] = points[i + 1];
         auto h = x1 - x0;
@@ -90,11 +77,9 @@ auto interpolation::build_equations_matrices(const std::vector<point> &points) {
     return std::tuple(std::move(A), std::move(B));
 }
 
-void
-interpolation::cubic_spline(std::vector<point> const &points, std::string const &output_filename,
-                            double interpolation_step) {
-    if (interpolation_step <= 0) { throw std::runtime_error("interpolation step is negative"); }
-
+void interpolation::cubic_spline(std::vector<point> const &points,
+                                 std::string const &output_filename,
+                                 unsigned interpolation_step) {
     // compute coefficients
     auto[A, B] = build_equations_matrices(points);
     auto coeffs = boost::numeric::ublas::vector<double>(B.size());
@@ -103,21 +88,20 @@ interpolation::cubic_spline(std::vector<point> const &points, std::string const 
     boost::numeric::ublas::lu_substitute(A, P, coeffs);
 
     // lambda which returns interpolated y value in x point
-    auto f = [&](auto const x) {
+    auto f = [&coeffs, &points](auto const x) {
         auto index = 0u;
         while (points[index + 1].first < x) index++;
         auto x0 = points[index].first;
-        auto result =
-                coeffs(4 * index) +                             // a
-                coeffs(4 * index + 1) * (x - x0) +              // b
-                coeffs(4 * index + 2) * std::pow(x - x0, 2) +   // c
-                coeffs(4 * index + 3) * std::pow(x - x0, 3);    // d
-        return result;
+        return coeffs(4 * index) +                             // a
+               coeffs(4 * index + 1) * (x - x0) +              // b
+               coeffs(4 * index + 2) * std::pow(x - x0, 2) +   // c
+               coeffs(4 * index + 3) * std::pow(x - x0, 3);    // d
     };
 
     // compute and save results
     auto inter_out = std::ofstream(output_filename);
-    for (auto x = points.front().first; x <= points.back().first; x += interpolation_step) {
+    auto max = (unsigned)points.back().first;
+    for (auto x = 0u; x <= max; x += interpolation_step) {
         inter_out << x << ',' << f(x) << '\n';
     }
 }

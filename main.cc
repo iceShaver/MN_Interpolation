@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
     std::cout << "Performing lagrange interpolation..." << std::flush;
     interpolation::lagrange(data, "lagrange_" + input_filename, 1);
     std::cout << "DONE\nPerforming cubic spline interpolation..." << std::flush;
-    interpolation::cubic_spline(data, "splines_" + input_filename, 1);
+    interpolation::cubic_spline(data, "cubic_spline_" + input_filename, 1);
     std::cout << "DONE" << std::endl;
     return 0;
 }

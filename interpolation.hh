@@ -7,13 +7,22 @@
 
 #include <vector>
 #include <string>
+#include <tuple>
 
 namespace interpolation {
-    using Point = std::pair<double, double>;
+    using point = std::pair<double, double>;
 
-    auto makeLangrangeForX(double X, std::vector<Point> const &points);
-    auto buildEquationsMatrices(std::vector<Point> const& points);
-    void lagrange(std::vector<Point> const &data, std::string const & outputFileName, double interpolationStep = 1);
-    void splines(std::vector<Point> const &points, std::string const & outputFileName, double interpolationStep = 1);
+    auto lagrange_x(double x, std::vector<point> const &points);
+
+    auto build_equations_matrices(std::vector<point> const &points);
+
+    void lagrange(std::vector<point> const &points,
+                  std::string const &outputFileName,
+                  double interpolationStep = 1);
+
+    void cubic_spline(std::vector<point> const &points,
+                      std::string const &outputFileName,
+                      double interpolationStep = 1);
+
 }
 #endif //MN_INTERPOLATION_INTERPOLATION_TOOLS_HH

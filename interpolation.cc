@@ -5,11 +5,14 @@
 #include <future>
 #include <fstream>
 #include <iterator>
-#include "linear_system.hh"
+#include <tuple>
+#include <boost/numeric/ublas/matrix.hpp>
+#include <boost/numeric/ublas/vector.hpp>
+#include <boost/numeric/ublas/lu.hpp>
 #include "string_tools.hh"
 
 
-auto interpolation::makeLangrangeForX(double X, std::vector<Point> const &points) {
+auto interpolation::lagrange_x(double x, std::vector<point> const &points) {
     auto result = 0.0;
     for (auto i = 0u; i < points.size(); ++i) {
         auto[xi, yi] = points[i];
@@ -17,20 +20,21 @@ auto interpolation::makeLangrangeForX(double X, std::vector<Point> const &points
         for (auto j = 0u; j < points.size(); ++j) {
             if (j == i) { continue; }
             auto xj = points[j].first;
-            mul *= ((X - xj) / (xi - xj));
+            mul *= ((x - xj) / (xi - xj));
         }
         result += mul;
     }
-    return Point(X, result);
+    return point(x, result);
 }
+
+
 void
-interpolation::lagrange(std::vector<Point> const &data, std::string const &outputFileName, double interpolationStep) {
-    if (interpolationStep <= 0) { throw InvalidArgumentException(); }
-    auto futures = std::vector<std::future<Point>>();
-    futures.reserve(static_cast<unsigned long long>(data.back().first + 1.0));
-    // find values of subsequent points in input input range, step: 1 meter
-    for (auto x = data[0].first; x < data.back().first; x += interpolationStep) {
-        futures.push_back(std::async(std::launch::async, makeLangrangeForX, x, data));
+interpolation::lagrange(std::vector<point> const &points, std::string const &outputFileName, double interpolationStep) {
+    if (interpolationStep <= 0) { throw std::runtime_error("interpolation step is negative"); }
+    auto futures = std::vector<std::future<point>>();
+    futures.reserve(static_cast<unsigned long long>(points.back().first + 1.0));
+    for (auto x = points[0].first; x < points.back().first; x += interpolationStep) {
+        futures.push_back(std::async(std::launch::async, lagrange_x, x, points));
     }
     auto interpolatedOutFile = std::ofstream(outputFileName);
     for (auto &future : futures) {
@@ -38,45 +42,46 @@ interpolation::lagrange(std::vector<Point> const &data, std::string const &outpu
         interpolatedOutFile << x << ',' << y << '\n';
     }
 }
-auto interpolation::buildEquationsMatrices(const std::vector<Point> &points) {
+
+
+auto interpolation::build_equations_matrices(const std::vector<point> &points) {
     // matrix size
     auto N = 1u + 1u              // edge conditionals
              + points.size() - 2  // inner points first derivative continuity
              + points.size() - 2  // inner points second derivative continuity
              + points.size() - 1  // f(x0) = y0
-             + points.size() - 1; // f(x1) = y1
-    auto A = Matrix<double>(N, N, 0);
-    auto B = std::vector<double>(N, 0);
+             + points.size() - 1; // f(x1) = y1s
+    auto A = boost::numeric::ublas::matrix<double>(N, N, 0);
+    auto B = boost::numeric::ublas::vector<double>(N, 0);
 
-    // build matrix A i vector B for each point
     for (auto i = 0u; i < points.size() - 1; i++) {
         auto[x0, y0] = points[i];
         auto[x1, y1] = points[i + 1];
         auto h = x1 - x0;
-        // generuj X
+        // generate X
         B[4 * i] = y0;
         B[4 * i + 1] = y1;
-        // 1. wartość w x0
+        // 1. x0 value
         A(4 * i + 0, 4 * i + 0) = 1;                // a
-        // 2. wartość w x1
+        // 2. x1 value
         A(4 * i + 1, 4 * i + 0) = 1;                // a
         A(4 * i + 1, 4 * i + 1) = h;                // b
         A(4 * i + 1, 4 * i + 2) = std::pow(h, 2);   // c
         A(4 * i + 1, 4 * i + 3) = std::pow(h, 3);   // d
 
         if (i >= points.size() - 2) { continue; } // check if not edge
-        // 3. ciągłość I pochodnej w x1
+        // 3. x1 first derivative continuity
         A(4 * i + 2, 4 * i + 0) = 0;                    // a
         A(4 * i + 2, 4 * i + 1) = 1;                    // b
         A(4 * i + 2, 4 * i + 2) = 2 * h;                // c
         A(4 * i + 2, 4 * i + 3) = 3 * std::pow(h, 2);   // d
         A(4 * i + 2, 4 * i + 5) = -1; // == b1
-        // 4. ciągłość II pochodnej w x1
+        // 4. x1 second derivative continuity
         A(4 * i + 3, 4 * i + 2) = 2;
         A(4 * i + 3, 4 * i + 3) = 6 * h;
         A(4 * i + 3, 4 * i + 6) = -2;
     }
-    // second derivative = 0 at the beginning and end
+    // second derivative = 0 at the beginning and at the end
     auto h = points[points.size() - 1].first - points[points.size() - 2].first;
     A(N - 2, 2) = 1;
     A(N - 1, N - 2) = 2;
@@ -84,16 +89,21 @@ auto interpolation::buildEquationsMatrices(const std::vector<Point> &points) {
     return std::tuple(std::move(A), std::move(B));
 }
 
-void
-interpolation::splines(std::vector<Point> const &points, std::string const &outputFileName, double interpolationStep) {
-    if (interpolationStep <= 0) { throw InvalidArgumentException(); }
 
-    auto[A, B] = buildEquationsMatrices(points);
+void
+interpolation::cubic_spline(std::vector<point> const &points, std::string const &outputFileName,
+                            double interpolationStep) {
+    if (interpolationStep <= 0) { throw std::runtime_error("interpolation step is negative"); }
+
     // compute coefficients
     auto coefficients = std::vector<std::tuple<double, double, double, double>>();
     {
-        auto X = linear_system::luFactorization(A, B);
-        coefficients.reserve(X.size() / 4 + 1);
+        auto[A, B] = build_equations_matrices(points);
+        auto X = boost::numeric::ublas::vector<double>(B.size());
+        auto P = boost::numeric::ublas::permutation_matrix<double>(B.size());
+        boost::numeric::ublas::lu_factorize(A, P);
+        boost::numeric::ublas::lu_substitute(A, P, X);
+        coefficients.reserve(X.size() / 4);
         for (auto i = 0u; i < X.size(); i += 4) {
             coefficients.emplace_back(X[i], X[i + 1], X[i + 2], X[i + 3]);
         }
@@ -101,9 +111,8 @@ interpolation::splines(std::vector<Point> const &points, std::string const &outp
 
     // function which returns interpolated y value in x point
     auto f = [&](auto const x) {
-        auto index = std::max(
-                (int) (std::find_if(points.begin(), points.end(), [&x](auto const elem) { return elem.first >= x; })
-                       - points.begin() - 1), 0);
+        auto predicate = [&x](auto const elem) { return elem.first >= x; };
+        auto index = std::max((int) (std::find_if(points.begin(), points.end(), predicate) - points.begin() - 1), 0);
         auto x0 = points[index].first;
         auto[a, b, c, d] = coefficients[index];
         auto result = a + b * (x - x0) + c * std::pow(x - x0, 2) + d * std::pow(x - x0, 3);
@@ -116,3 +125,4 @@ interpolation::splines(std::vector<Point> const &points, std::string const &outp
         inter_out << x << ',' << f(x) << '\n' << std::flush;
     }
 }
+

@@ -30,11 +30,11 @@ auto interpolation::lagrange_x(double x, std::vector<point> const &points) {
 
 void
 interpolation::lagrange(std::vector<point> const &points, std::string const &output_filename,
-                        double interpolationStep) {
-    if (interpolationStep <= 0) { throw std::runtime_error("interpolation step is negative"); }
+                        double interpolation_step) {
+    if (interpolation_step <= 0) { throw std::runtime_error("interpolation step is negative"); }
     auto futures = std::vector<std::future<point>>();
-    futures.reserve(static_cast<unsigned long long>(points.back().first + 1.0));
-    for (auto x = points[0].first; x < points.back().first; x += interpolationStep) {
+    futures.reserve(static_cast<unsigned long long>(points.back().first / interpolation_step + 1.0));
+    for (auto x = points[0].first; x < points.back().first; x += interpolation_step) {
         futures.push_back(std::async(std::launch::async, lagrange_x, x, points));
     }
     auto lagrange_out_file = std::ofstream(output_filename);
@@ -60,8 +60,8 @@ auto interpolation::build_equations_matrices(const std::vector<point> &points) {
         auto[x1, y1] = points[i + 1];
         auto h = x1 - x0;
         // generate X
-        B[4 * i] = y0;
-        B[4 * i + 1] = y1;
+        B(4 * i) = y0;
+        B(4 * i + 1) = y1;
         // 1. x0 value
         A(4 * i + 0, 4 * i + 0) = 1;                // a
         // 2. x1 value
@@ -70,7 +70,7 @@ auto interpolation::build_equations_matrices(const std::vector<point> &points) {
         A(4 * i + 1, 4 * i + 2) = std::pow(h, 2);   // c
         A(4 * i + 1, 4 * i + 3) = std::pow(h, 3);   // d
 
-        if (i >= points.size() - 2) { continue; } // check if not edge
+        if (i >= points.size() - 2) { break; } // check if not edge
         // 3. x1 first derivative continuity
         A(4 * i + 2, 4 * i + 0) = 0;                    // a
         A(4 * i + 2, 4 * i + 1) = 1;                    // b
@@ -90,40 +90,34 @@ auto interpolation::build_equations_matrices(const std::vector<point> &points) {
     return std::tuple(std::move(A), std::move(B));
 }
 
-
 void
 interpolation::cubic_spline(std::vector<point> const &points, std::string const &output_filename,
                             double interpolation_step) {
     if (interpolation_step <= 0) { throw std::runtime_error("interpolation step is negative"); }
 
     // compute coefficients
-    auto coefficients = std::vector<std::tuple<double, double, double, double>>();
-    {
-        auto[A, B] = build_equations_matrices(points);
-        auto X = boost::numeric::ublas::vector<double>(B.size());
-        auto P = boost::numeric::ublas::permutation_matrix<double>(B.size());
-        boost::numeric::ublas::lu_factorize(A, P);
-        boost::numeric::ublas::lu_substitute(A, P, X);
-        coefficients.reserve(X.size() / 4);
-        for (auto i = 0u; i < X.size(); i += 4) {
-            coefficients.emplace_back(X[i], X[i + 1], X[i + 2], X[i + 3]);
-        }
-    }
+    auto[A, B] = build_equations_matrices(points);
+    auto coeffs = boost::numeric::ublas::vector<double>(B.size());
+    auto P = boost::numeric::ublas::permutation_matrix<double>(B.size());
+    boost::numeric::ublas::lu_factorize(A, P);
+    boost::numeric::ublas::lu_substitute(A, P, coeffs);
 
     // lambda which returns interpolated y value in x point
     auto f = [&](auto const x) {
-        auto predicate = [&x](auto const &elem) { return elem.first >= x; };
-        auto index = std::max(
-                static_cast<int> (std::find_if(points.begin(), points.end(), predicate) - points.begin() - 1), 0);
+        auto index = 0u;
+        while (points[index + 1].first < x) index++;
         auto x0 = points[index].first;
-        auto[a, b, c, d] = coefficients[index];
-        auto result = a + b * (x - x0) + c * std::pow(x - x0, 2) + d * std::pow(x - x0, 3);
+        auto result =
+                coeffs(4 * index) +                             // a
+                coeffs(4 * index + 1) * (x - x0) +              // b
+                coeffs(4 * index + 2) * std::pow(x - x0, 2) +   // c
+                coeffs(4 * index + 3) * std::pow(x - x0, 3);    // d
         return result;
     };
 
     // compute and save results
     auto inter_out = std::ofstream(output_filename);
     for (auto x = points.front().first; x <= points.back().first; x += interpolation_step) {
-        inter_out << x << ',' << f(x) << '\n' << std::flush;
+        inter_out << x << ',' << f(x) << '\n';
     }
 }

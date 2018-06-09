@@ -18,7 +18,7 @@ namespace interpolation {
 
     void lagrange(std::vector<point> const &points,
                   std::string const &output_filename,
-                  double interpolationStep = 1);
+                  double interpolation_step = 1);
 
     void cubic_spline(std::vector<point> const &points,
                       std::string const &output_filename,

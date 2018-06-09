@@ -99,7 +99,7 @@ void interpolation::cubic_spline(std::vector<point> const &points,
 
     // compute and save results
     auto inter_out = std::ofstream(output_filename);
-    auto max = (unsigned)points.back().first;
+    auto max = static_cast<unsigned>(points.back().first);
     for (auto x = 0u; x <= max; x += interpolation_step) {
         inter_out << x << ',' << f(x) << '\n';
     }

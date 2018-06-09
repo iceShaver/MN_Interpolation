@@ -112,7 +112,7 @@ interpolation::cubic_spline(std::vector<point> const &points, std::string const 
     // lambda which returns interpolated y value in x point
     auto f = [&](auto const x) {
         auto predicate = [&x](auto const elem) { return elem.first >= x; };
-        auto index = std::max((int) (std::find_if(points.begin(), points.end(), predicate) - points.begin() - 1), 0);
+        auto index = std::max(static_cast<int> (std::find_if(points.begin(), points.end(), predicate) - points.begin() - 1), 0);
         auto x0 = points[index].first;
         auto[a, b, c, d] = coefficients[index];
         auto result = a + b * (x - x0) + c * std::pow(x - x0, 2) + d * std::pow(x - x0, 3);

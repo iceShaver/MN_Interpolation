@@ -28,26 +28,25 @@ auto interpolation::lagrange_x(double x, std::vector<point> const &points) {
 
 void interpolation::lagrange(std::vector<point> const &points,
                              std::string const &output_filename,
-                             unsigned interpolation_step) {
+                             unsigned long interpolation_step) {
     auto lagrange_out_file = std::ofstream(output_filename);
-    for (auto x = 0u; x < (unsigned) points.back().first; x += interpolation_step) {
+    auto const max = (unsigned) points.back().first;
+    for (auto x = 0u; x < max; x += interpolation_step) {
         lagrange_out_file << x << ',' << lagrange_x(x, points) << '\n';
     }
 }
-
 
 auto interpolation::build_equations_matrices(const std::vector<point> &points) {
     auto const N = 4 * (points.size() - 1);
     auto A = boost::numeric::ublas::matrix<double>(N, N, 0);
     auto B = boost::numeric::ublas::vector<double>(N, 0);
-
     for (auto i = 0u;; i++) {
         auto[x0, y0] = points[i];
         auto[x1, y1] = points[i + 1];
         auto h = x1 - x0;
         // generate X
-        B(4 * i) = y0;
-        B(4 * i + 1) = y1;
+        B[4 * i] = y0;
+        B[4 * i + 1] = y1;
         // 1. x0 value
         A(4 * i + 0, 4 * i + 0) = 1;                // a
         // 2. x1 value
@@ -78,7 +77,7 @@ auto interpolation::build_equations_matrices(const std::vector<point> &points) {
 
 void interpolation::cubic_spline(std::vector<point> const &points,
                                  std::string const &output_filename,
-                                 unsigned interpolation_step) {
+                                 unsigned long interpolation_step) {
     // compute coefficients
     auto[A, B] = build_equations_matrices(points);
     auto coeffs = boost::numeric::ublas::vector<double>(B.size());
@@ -91,10 +90,10 @@ void interpolation::cubic_spline(std::vector<point> const &points,
         auto index = 0u;
         while (points[index + 1].first < x) index++;
         auto x0 = points[index].first;
-        return coeffs(4 * index) +                             // a
-               coeffs(4 * index + 1) * (x - x0) +              // b
-               coeffs(4 * index + 2) * std::pow(x - x0, 2) +   // c
-               coeffs(4 * index + 3) * std::pow(x - x0, 3);    // d
+        return coeffs[4 * index] +                             // a
+               coeffs[4 * index + 1] * (x - x0) +              // b
+               coeffs[4 * index + 2] * std::pow(x - x0, 2) +   // c
+               coeffs[4 * index + 3] * std::pow(x - x0, 3);    // d
     };
 
     // compute and save results

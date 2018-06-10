@@ -24,15 +24,16 @@ auto load_data(std::string const &fileName, unsigned long step) {
 
 
 int main(int argc, char **argv) {
-    if (argc != 3) {
-        std::cout << "Invalid arguments. Usage:\n program [input_filename] [step]\n"
+    if (argc != 4) {
+        std::cout << "Invalid arguments. Usage:\n program [input_filename] [step] [interpolation_step]\n"
                      "Input file should contain values separated by comma"
                      "Output files are: lagrange_input_filename, cubic_spline_input_filename\n";
         return -1;
     }
     auto input_filename = std::string(argv[1]);
     auto step = std::stoul(argv[2]);
-    auto data = ::load_data("data1.txt", step);
+    auto interpolation_step = std::stoul(argv[3]);
+    auto data = ::load_data(input_filename, step);
     // save loaded data for plot generation
     {
         auto data_out_file = std::ofstream("data_" + input_filename);
@@ -40,9 +41,9 @@ int main(int argc, char **argv) {
     }
     // process and save data
     std::cout << "Performing lagrange interpolation..." << std::flush;
-    interpolation::lagrange(data, "lagrange_" + input_filename, 1);
+    interpolation::lagrange(data, "lagrange_" + input_filename, interpolation_step);
     std::cout << "DONE\nPerforming cubic spline interpolation..." << std::flush;
-    interpolation::cubic_spline(data, "cubic_spline_" + input_filename, 1);
+    interpolation::cubic_spline(data, "cubic_spline_" + input_filename, interpolation_step);
     std::cout << "DONE" << std::endl;
     return 0;
 }

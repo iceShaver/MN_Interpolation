@@ -18,11 +18,11 @@ namespace interpolation {
 
     void lagrange(std::vector<point> const &points,
                   std::string const &output_filename,
-                  unsigned interpolation_step = 1u);
+                  unsigned long interpolation_step = 1u);
 
     void cubic_spline(std::vector<point> const &points,
                       std::string const &output_filename,
-                      unsigned interpolation_step = 1u);
+                      unsigned long interpolation_step = 1u);
 
 }
 #endif //MN_INTERPOLATION_INTERPOLATION_TOOLS_HH

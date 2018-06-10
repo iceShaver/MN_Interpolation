@@ -5,6 +5,7 @@
 #include <iterator>
 #include <string>
 #include <tuple>
+#include <eigen3/Eigen/Dense>
 #include "interpolation.hh"
 #include "string_tools.hh"
 
@@ -25,8 +26,8 @@ auto load_data(std::string const &fileName, unsigned long step) {
 
 int main(int argc, char **argv) {
     if (argc != 4) {
-        std::cout << "Invalid arguments. Usage:\n program [input_filename] [step] [interpolation_step]\n"
-                     "Input file should contain values separated by comma"
+        std::cout << "Invalid arguments.\nUsage:\nprogram [input_filename] [step] [interpolation_step]\n"
+                     "Input file should contain values separated by comma\n"
                      "Output files are: lagrange_input_filename, cubic_spline_input_filename\n";
         return -1;
     }

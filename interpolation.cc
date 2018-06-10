@@ -5,10 +5,7 @@
 #include <fstream>
 #include <iterator>
 #include <tuple>
-#include <boost/numeric/ublas/matrix.hpp>
-#include <boost/numeric/ublas/vector.hpp>
-#include <boost/numeric/ublas/lu.hpp>
-
+#include <eigen3/Eigen/Dense>
 
 auto interpolation::lagrange_x(double x, std::vector<point> const &points) {
     auto result = 0.0;
@@ -38,15 +35,17 @@ void interpolation::lagrange(std::vector<point> const &points,
 
 auto interpolation::build_equations_matrices(const std::vector<point> &points) {
     auto const N = 4 * (points.size() - 1);
-    auto A = boost::numeric::ublas::matrix<double>(N, N, 0);
-    auto B = boost::numeric::ublas::vector<double>(N, 0);
+    auto A = Eigen::MatrixXd(N, N);
+    auto B = Eigen::VectorXd(N);
     for (auto i = 0u;; i++) {
         auto[x0, y0] = points[i];
         auto[x1, y1] = points[i + 1];
         auto h = x1 - x0;
         // generate X
-        B[4 * i] = y0;
-        B[4 * i + 1] = y1;
+        B(4 * i) = y0;
+        B(4 * i + 1) = y1;
+        B(4 * i + 2) = 0;
+        B(4 * i + 3) = 0;
         // 1. x0 value
         A(4 * i + 0, 4 * i + 0) = 1;                // a
         // 2. x1 value
@@ -80,20 +79,15 @@ void interpolation::cubic_spline(std::vector<point> const &points,
                                  unsigned long interpolation_step) {
     // compute coefficients
     auto[A, B] = build_equations_matrices(points);
-    auto coeffs = boost::numeric::ublas::vector<double>(B.size());
-    auto P = boost::numeric::ublas::permutation_matrix<double>(B.size());
-    boost::numeric::ublas::lu_factorize(A, P);
-    boost::numeric::ublas::lu_substitute(A, P, coeffs);
-
-    // lambda which returns interpolated y value in x point
+    Eigen::VectorXd coeffs = A.fullPivLu().solve(B);
     auto f = [&coeffs, &points](auto const x) {
         auto index = 0u;
         while (points[index + 1].first < x) index++;
         auto x0 = points[index].first;
-        return coeffs[4 * index] +                             // a
-               coeffs[4 * index + 1] * (x - x0) +              // b
-               coeffs[4 * index + 2] * std::pow(x - x0, 2) +   // c
-               coeffs[4 * index + 3] * std::pow(x - x0, 3);    // d
+        return coeffs(4 * index) +                             // a
+               coeffs(4 * index + 1) * (x - x0) +              // b
+               coeffs(4 * index + 2) * std::pow(x - x0, 2) +   // c
+               coeffs(4 * index + 3) * std::pow(x - x0, 3);    // d
     };
 
     // compute and save results

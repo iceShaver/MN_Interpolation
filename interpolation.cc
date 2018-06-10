@@ -7,14 +7,14 @@
 #include <tuple>
 #include <eigen3/Eigen/Dense>
 
-auto interpolation::lagrange_x(double x, std::vector<point> const &points) {
+auto interpolation::lagrange_x(double const x, std::vector<point> const &points) {
     auto result = 0.0;
     for (auto i = 0u; i < points.size(); ++i) {
-        auto[xi, yi] = points[i];
+        auto const[xi, yi] = points[i];
         auto mul = yi;
         for (auto j = 0u; j < points.size(); ++j) {
             if (j == i) { continue; }
-            auto xj = points[j].first;
+            auto const xj = points[j].first;
             mul *= ((x - xj) / (xi - xj));
         }
         result += mul;
@@ -25,22 +25,22 @@ auto interpolation::lagrange_x(double x, std::vector<point> const &points) {
 
 void interpolation::lagrange(std::vector<point> const &points,
                              std::string const &output_filename,
-                             unsigned long interpolation_step) {
+                             unsigned long const interpolation_step) {
     auto lagrange_out_file = std::ofstream(output_filename);
-    auto const max = (unsigned) points.back().first;
+    auto const max = static_cast<unsigned long> (points.back().first);
     for (auto x = 0u; x < max; x += interpolation_step) {
         lagrange_out_file << x << ',' << lagrange_x(x, points) << '\n';
     }
 }
 
-auto interpolation::build_equations_matrices(const std::vector<point> &points) {
+auto interpolation::build_equations_matrices(std::vector<point> const &points) {
     auto const N = 4 * (points.size() - 1);
     auto A = Eigen::MatrixXd(N, N);
     auto B = Eigen::VectorXd(N);
     for (auto i = 0u;; i++) {
-        auto[x0, y0] = points[i];
-        auto[x1, y1] = points[i + 1];
-        auto h = x1 - x0;
+        auto const[x0, y0] = points[i];
+        auto const[x1, y1] = points[i + 1];
+        auto const h = x1 - x0;
         // generate X
         B(4 * i) = y0;
         B(4 * i + 1) = y1;
@@ -67,7 +67,7 @@ auto interpolation::build_equations_matrices(const std::vector<point> &points) {
         A(4 * i + 3, 4 * i + 6) = -2;
     }
     // second derivative = 0 at the beginning and at the end
-    auto h = points[points.size() - 1].first - points[points.size() - 2].first;
+    auto const h = points[points.size() - 1].first - points[points.size() - 2].first;
     A(N - 2, 2) = 1;
     A(N - 1, N - 2) = 2;
     A(N - 1, N - 1) = 6 * h;
@@ -76,23 +76,22 @@ auto interpolation::build_equations_matrices(const std::vector<point> &points) {
 
 void interpolation::cubic_spline(std::vector<point> const &points,
                                  std::string const &output_filename,
-                                 unsigned long interpolation_step) {
+                                 unsigned long const interpolation_step) {
     // compute coefficients
-    auto[A, B] = build_equations_matrices(points);
-    Eigen::VectorXd coeffs = A.fullPivLu().solve(B);
-    auto f = [&coeffs, &points](auto const x) {
+    auto const[A, B] = build_equations_matrices(points);
+    auto const coeffs = Eigen::VectorXd(A.fullPivLu().solve(B));
+    auto const f = [&coeffs, &points](auto const x) {
         auto index = 0u;
         while (points[index + 1].first < x) index++;
-        auto x0 = points[index].first;
+        auto const x0 = points[index].first;
         return coeffs(4 * index) +                             // a
                coeffs(4 * index + 1) * (x - x0) +              // b
                coeffs(4 * index + 2) * std::pow(x - x0, 2) +   // c
                coeffs(4 * index + 3) * std::pow(x - x0, 3);    // d
     };
-
     // compute and save results
     auto inter_out = std::ofstream(output_filename);
-    auto max = static_cast<unsigned>(points.back().first);
+    auto const max = static_cast<unsigned>(points.back().first);
     for (auto x = 0u; x <= max; x += interpolation_step) {
         inter_out << x << ',' << f(x) << '\n';
     }

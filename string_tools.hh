@@ -17,7 +17,7 @@ using tstringstream = std::basic_stringstream<CharT, std::char_traits<CharT>, st
 
 
 template<typename CharT>
-std::vector<tstring<CharT>> split(tstring<CharT> text, CharT const delimiter) {
+auto split(tstring<CharT> const &text, CharT const delimiter) {
     auto sstr = tstringstream<CharT>{text};
     auto tokens = std::vector<tstring<CharT>>{};
     auto token = tstring<CharT>{};

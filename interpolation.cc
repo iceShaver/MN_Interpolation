@@ -33,6 +33,7 @@ void interpolation::lagrange(std::vector<point> const &points,
     }
 }
 
+
 auto interpolation::build_equations_matrices(std::vector<point> const &points) {
     auto const N = 4 * (points.size() - 1);
     auto A = Eigen::MatrixXd(N, N);
@@ -74,12 +75,14 @@ auto interpolation::build_equations_matrices(std::vector<point> const &points) {
     return std::tuple(std::move(A), std::move(B));
 }
 
+
 void interpolation::cubic_spline(std::vector<point> const &points,
                                  std::string const &output_filename,
                                  unsigned long const interpolation_step) {
     // compute coefficients
     auto const[A, B] = build_equations_matrices(points);
     auto const coeffs = Eigen::VectorXd(A.fullPivLu().solve(B));
+    // lambda which returns interpolated y value in x point
     auto const f = [&coeffs, &points](auto const x) {
         auto index = 0u;
         while (points[index + 1].first < x) index++;

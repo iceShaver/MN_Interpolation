@@ -13,6 +13,7 @@ auto load_data(std::string const &file_name, unsigned long points_number) {
     if (points_number < 2) { throw std::runtime_error("points_number must be >= 2"); }
     auto data = std::vector<interpolation::point>();
     auto file = std::ifstream(file_name);
+    if (file.fail()) { throw std::runtime_error("input file not found"); }
     auto const tmp = std::vector<std::string>(std::istream_iterator<std::string>(file),
                                               std::istream_iterator<std::string>());
     if (points_number > tmp.size()) { points_number = tmp.size(); }
